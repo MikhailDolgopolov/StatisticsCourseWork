@@ -2,80 +2,55 @@ library(tidyverse)
 library(readr)
 library(tidymodels)
 library(glmnet)
+library(ggpubr)
 library(ggplot2)
 set.seed(327)
-# vowel_df <- read_csv("Data/VowelPivotedDataset.csv")
-# original_df <- read_csv("Data/FullDataset.csv")
+
+setwd("C:/Users/Mikhail23/Documents/MyDirectory/МИСиС/3й курс/Статистика/CourseProject")
 clean_df <- read_csv("Data/CleanDataset.csv")
+df <- read_csv("Data/FullDataset.csv")
 
 clean_df <- clean_df %>%
   mutate_at(vars(vowel, syl, end, closed, rhymes), factor)
+
+df <- df %>%
+  mutate_at(vars(vowel, syl, end, closed, genre), factor)
 
 bw=30
 clean_df %>% ggplot(aes(x=length, color=end)) +
   geom_histogram(color = col, fill=col, size=2) +
   geom_histogram(fill='white')
 
-split <- initial_split(clean_df, prop = 0.9, strata = end)
-train <- split %>%
-        training() %>%
-        mutate_at(vars(vowel, end), factor)
-test <- split %>%
-        testing() %>%
-        mutate_at(vars(vowel, end), factor)
+vowel_plot <- df %>% ggplot(aes(x=vowel))+geom_bar(aes(fill=vowel), width=0.6)+
+   xlab("Гласные")+ylab("")+labs(fill="Гласные")+ scale_fill_brewer(palette="Dark2")
 
+vowel_plot
+ 
+syl_plot <-
+  df %>% ggplot(aes(x=syl))+geom_bar(aes(fill=syl), width=0.5)+
+  xlab("")+ylab("") + scale_fill_brewer(palette="Dark2")
 
+end_plot <-
+  df %>% ggplot(aes(x=end))+geom_bar(aes(fill=end), width=0.5)+
+  xlab("")+ylab("")  + scale_fill_brewer(palette="Paired")
 
+closed_plot <-
+  df %>% ggplot(aes(x=closed))+geom_bar(aes(fill=closed), width=0.5)+
+  xlab("")+ylab("")  + scale_fill_brewer(palette="Accent")
 
-# Define the logistic regression model with penalty and mixture hyperparameters
-log_reg <- logistic_reg(mixture = tune(), penalty = tune(), engine = "glmnet")
+genre_plot <-
+  df %>% ggplot(aes(x=genre))+geom_bar(aes(fill=genre), width=0.5)+
+  xlab("")+ylab("") + scale_fill_brewer(palette="Set2")
 
-# Define the grid search for the hyperparameters
-grid <- grid_regular(mixture(), penalty(), levels = c(mixture = 4, penalty = 3))
+ggarrange(syl_plot, end_plot, closed_plot, genre_plot,
+          ncol = 2, nrow = 2)
 
-# Define the workflow for the model
-log_reg_wf <- workflow() %>%
-  add_model(log_reg) %>%
-  add_formula(end ~ .)
-
-# Define the resampling method for the grid search
-folds <- vfold_cv(train, v = 5)
-
-# Tune the hyperparameters using the grid search
-log_reg_tuned <- tune_grid(
-  log_reg_wf,
-  resamples = folds,
-  grid = grid,
-  control = control_grid(save_pred = TRUE)
-)
-
-# select_best(log_reg_tuned, metric = "roc_auc")
-
-# Train a logistic regression model
-model <- logistic_reg(mixture = double(1), penalty = 0.0000000001) %>%
-  set_engine("glmnet") %>%
-  set_mode("classification") %>%
-  fit(end ~ ., data = train)
-
-# Model summary
-# tidy(model)
-
-base_model <- glm(end ~.,family=binomial(link='logit'),data=train)
-summary(base_model)
-
-base_model$coefficients
-# Class Predictions
-# pred_class <- predict(model,
-#                       new_data = test,
-#                       type = "class")
-#
-# # Class Probabilities
-# pred_proba <- predict(model,
-#                       new_data = test,
-#                       type = "prob")
-#
-# results <- test %>%
-#   select(end) %>%
-#   bind_cols(pred_class, pred_proba)
-#
-# accuracy(results, truth = end, estimate = .pred_class)
+stat = clean_df %>% 
+  select(end, length) %>% 
+  group_by(end) %>% 
+  summarise(m = mean(length), sd = sd(length))
+clean_df %>% ggplot(aes(x=length, fill=end))+geom_density()+
+  geom_vline(data=stat, aes(xintercept=m), color="red", linewidth=1)+
+  geom_vline(data=stat, aes(xintercept=m-sd), color="blue", linetype="dashed")+
+  geom_vline(data=stat, aes(xintercept=m+sd), color="blue", linetype="dashed")+
+  facet_grid(rows=vars(end)) + ylab("")+xlab("length, мс")

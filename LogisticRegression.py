@@ -42,13 +42,10 @@ print(sm_model.summary())
 
 
 datum = data.drop("end", axis=1)
-
-
 y_pred = np.where(sm_model.predict(datum)>0.42, 1,0)
 
 cm = metrics.confusion_matrix(data["end"], y_pred)
-print(cm)
-print(cm[1,0])
+
 precision = cm[0,0]/(cm[0,0]+cm[1,0])
 recall = cm[0,0]/(cm[0,0]+cm[0,1])
 accuracy = (cm[0,0]+cm[1,1])/np.sum(cm)
